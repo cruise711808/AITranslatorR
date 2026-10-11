@@ -83,10 +83,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="多线程:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White"/>
                                                 <Border Grid.Column="1" BorderThickness="1" VerticalAlignment="Center" BorderBrush="{calc:Binding 'ActiveTask != null ? media:Brushes.Gray : media:Brushes.White'}" Height="25" CornerRadius="12.5" >
-                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBox Text="{Binding Communicator.ThreadCount}" Width="70" Foreground="White" InputMethod.IsInputMethodEnabled="False" VerticalAlignment="Center" CaretBrush="White" Margin="5,0" BorderThickness="0" Background="Transparent" FontSize="10"/>
-                                                        <TextBlock Text="(同时向模型发送的请求数, 仅OpenAI生效, 默认4)" Foreground="Gray" FontSize="9" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                                                    </StackPanel>
+                                                    <TextBox Text="{Binding Communicator.ThreadCount}" Foreground="White" InputMethod.IsInputMethodEnabled="False" VerticalAlignment="Center" CaretBrush="White" Margin="5,0" BorderThickness="0" Background="Transparent" FontSize="10"/>
                                                 </Border>
                                             </Grid>
                                         </Grid>
