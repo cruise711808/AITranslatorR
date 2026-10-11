@@ -170,7 +170,6 @@ namespace AITranslator.Translator.Communicator
     internal class LLamaCommunicator : ICommunicator
     {
         CancellationTokenSource _cts;
-        Stopwatch sw = new Stopwatch();
         public LLamaCommunicator()
         {
             _cts = new CancellationTokenSource();
@@ -187,9 +186,9 @@ namespace AITranslator.Translator.Communicator
             };
             return new(role, exampleDialogue.content);
         }
-        public string Translate(PostDataBase postData, ExampleDialogue[] headers, ExampleDialogue[] histories, string inputText, out double speed)
+        public string Translate(PostDataBase postData, ExampleDialogue[] headers, ExampleDialogue[] histories, string inputText, out int tokens)
         {
-            speed = 0;
+            tokens = 0;
             CancellationToken token = _cts.Token;
 
             Message[] _headers = new Message[headers.Length];
@@ -214,11 +213,9 @@ namespace AITranslator.Translator.Communicator
                     List<Message> messages = [.. _headers, .. _histories, new(AuthorRole.User, inputText)];
                     InstructScriptInput gloableClass = new InstructScriptInput() { Messages = messages };
                     string data = LLamaLoader.Script.RunAsync(gloableClass).Result.ReturnValue;
-                    sw.Restart();
                     List<string> resultText = LLamaLoader.Executor.InferAsync(data, inferenceParams, token).ToBlockingEnumerable(token).ToList();
-                    sw.Stop();
                     str = string.Join(string.Empty, resultText);
-                    speed = resultText.Count / (sw.ElapsedMilliseconds / 1000d);
+                    tokens = resultText.Count;
                     noKvSlotError = false;
                 }
                 catch (LLamaDecodeError err)

@@ -53,7 +53,7 @@ namespace AITranslator.Translator.Translation
             postData.stop = new string[param.Stops.Count];
             param.Stops.CopyTo(postData.stop, 0);
 
-            string str_result = _communicator.Translate(postData, examples, Array.Empty<ExampleDialogue>(), $"{userPrompt}{str}", out double speed);
+            string str_result = _communicator.Translate(postData, examples, Array.Empty<ExampleDialogue>(), $"{userPrompt}{str}", out _);
             return str_result;
         }
         public void Dispose()

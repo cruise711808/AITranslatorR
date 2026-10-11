@@ -41,9 +41,9 @@ namespace AITranslator.Translator.Communicator
             _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_api_key}");
         }
 
-        public string Translate(PostDataBase postData, ExampleDialogue[] headers, ExampleDialogue[] histories, string inputText, out double speed)
+        public string Translate(PostDataBase postData, ExampleDialogue[] headers, ExampleDialogue[] histories, string inputText, out int tokens)
         {
-            speed = 0;
+            tokens = 0;
 
             List<ExampleDialogue> exampleDialogues = [.. headers, .. histories];
             exampleDialogues.Add(new("user", inputText));
@@ -56,7 +56,6 @@ namespace AITranslator.Translator.Communicator
             string str_result = string.Empty;
             int tryCount = 0;
             bool retry = true;
-            Stopwatch sw = new Stopwatch();
             while (retry)
             {
                 try
@@ -64,10 +63,8 @@ namespace AITranslator.Translator.Communicator
                     string sendJson = postDataNormal.ToString();
                     using (StringContent httpContent = new StringContent(sendJson, Encoding.UTF8, "application/json"))
                     {
-                        sw.Restart();
                         using (HttpResponseMessage? httpResponse = _client.PostAsync(_url, httpContent, token).Result)
                         {
-                            sw.Stop();
                             string json_result = httpResponse.Content.ReadAsStringAsync().Result;
                             if (httpResponse.StatusCode == HttpStatusCode.OK)
                             {
@@ -77,13 +74,9 @@ namespace AITranslator.Translator.Communicator
                                     str_result = jobj["choices"]?[0]?["message"]?["content"]?.ToString()?.Trim() ?? string.Empty;
                                     JToken? cplation_tokens_node = jobj["usage"]?["completion_tokens"];
                                     if (cplation_tokens_node is not null)
-
-                                    {
-                                        int completion_tokens = cplation_tokens_node.Value<int>();
-                                        speed = completion_tokens / (sw.ElapsedMilliseconds / 1000d);
-                                    }
+                                        tokens = cplation_tokens_node.Value<int>();
                                     else
-                                        speed = 0;
+                                        tokens = 0;
                                     retry = false;
                                 }
                                 else

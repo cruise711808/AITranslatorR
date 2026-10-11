@@ -112,6 +112,21 @@ namespace AITranslator.Translator.Translation
         long _lastProgressSaveTick;
 
         /// <summary>
+        /// 翻译速度统计的同步锁
+        /// </summary>
+        readonly object _speedSync = new object();
+
+        /// <summary>
+        /// 各线程合并的 token 采样（时间戳, token数），用于计算滑动平均值
+        /// </summary>
+        readonly Queue<(long TickMs, int Tokens)> _speedSamples = new Queue<(long, int)>();
+
+        /// <summary>
+        /// 本次翻译开始的时间戳
+        /// </summary>
+        long _runStartTickMs;
+
+        /// <summary>
         /// 替换词字典
         /// </summary>
         internal Dictionary<string, string> _replaces = new Dictionary<string, string>();
@@ -192,6 +207,52 @@ namespace AITranslator.Translator.Translation
                 _lastProgressSaveTick = now;
                 _translationTask.SaveConfig(TaskState.Pause);
             }
+        }
+
+        /// <summary>
+        /// 汇总所有线程产生的 token，计算并更新翻译速度（Tokens/s）。
+        /// 运行满 60 秒时采用最近 60 秒的滑动窗口平均值；不足 60 秒时依次回退到 45/30/15 秒窗口，
+        /// 不足 15 秒时用自本次翻译开始以来的平均值。所有分块线程共享同一统计。
+        /// </summary>
+        internal void ReportSpeedSample(int tokens)
+        {
+            double speed;
+            long now = Environment.TickCount64;
+            lock (_speedSync)
+            {
+                if (tokens > 0)
+                    _speedSamples.Enqueue((now, tokens));
+
+                // 只保留最近 60 秒的采样
+                long cutoff = now - 60000;
+                while (_speedSamples.Count > 0 && _speedSamples.Peek().TickMs < cutoff)
+                    _speedSamples.Dequeue();
+
+                long elapsed = now - _runStartTickMs;
+                double windowSec;
+                if (elapsed >= 60000)
+                    windowSec = 60;
+                else if (elapsed >= 45000)
+                    windowSec = 45;
+                else if (elapsed >= 30000)
+                    windowSec = 30;
+                else if (elapsed >= 15000)
+                    windowSec = 15;
+                else
+                    windowSec = elapsed / 1000d;
+                if (windowSec < 1)
+                    windowSec = 1;
+
+                long windowStart = now - (long)(windowSec * 1000);
+                long total = 0;
+                foreach (var sample in _speedSamples)
+                {
+                    if (sample.TickMs >= windowStart)
+                        total += sample.Tokens;
+                }
+                speed = total / windowSec;
+            }
+            _translationTask.Speed = speed;
         }
 
         /// <summary>
@@ -385,6 +446,11 @@ namespace AITranslator.Translator.Translation
                     TranslateData.GetUntranslatedData();
                     _history.Clear();
                     LoadHistory();
+                    lock (_speedSync)
+                    {
+                        _speedSamples.Clear();
+                        _runStartTickMs = Environment.TickCount64;
+                    }
                     Translate();
                     //保存文件
                     SaveFiles();
@@ -657,8 +723,8 @@ namespace AITranslator.Translator.Translation
             postData.presence_penalty = param.PresencePenalty;
             postData.stop = param.Stops.ToArray();
 
-            string str_result = _communicator!.Translate(postData, headers, histories, $"{prompt_with_text}{str}", out double speed);
-            _translationTask.Speed = speed;
+            string str_result = _communicator!.Translate(postData, headers, histories, $"{prompt_with_text}{str}", out int tokens);
+            ReportSpeedSample(tokens);
             return str_result;
         }
 
