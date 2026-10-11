@@ -72,6 +72,12 @@ bool IsGameCode(string s)
         return true;
     if (CountChar(t, '{') != CountChar(t, '}'))
         return true;
+    // 综合弱信号：无空格 且 无句末标点 且 (含数字/下划线/连字符/点 或 无空格驼峰) -> 标识符/资源名
+    bool noSpace = !Regex.IsMatch(t, @"\s");
+    bool noEndPunct = !Regex.IsMatch(t, @"[.!?]""?\s*$");
+    bool identish = Regex.IsMatch(t, @"[\d_\-.]") || Regex.IsMatch(t, @"^(?=.{6,}$)[A-Za-z0-9]*[A-Z][A-Za-z0-9]*[A-Z][A-Za-z0-9]*$");
+    if (noSpace && noEndPunct && identish)
+        return true;
     return false;
 }
 
