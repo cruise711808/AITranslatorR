@@ -446,7 +446,7 @@ namespace AITranslator.Translator.Translation
                                 default:
                                     throw new KnownException("不支持的翻译文件类型");
                             }
-                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]清理完成：待翻译 {preprocessStats.Kept} 条，剔除引擎数据 {preprocessStats.EngineRemoved} 条，剔除其他语言 {preprocessStats.LanguageRemoved} 条");
+                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]清理完成：原文件 {preprocessStats.SourceTotal} 条，模板过滤 {preprocessStats.RemovedByTemplate} 条，引擎/代码过滤 {preprocessStats.EngineRemoved} 条，其他语言过滤 {preprocessStats.LanguageRemoved} 条，待翻译 {preprocessStats.Kept} 条");
 
                             TranslateData.ReloadData();
                         }

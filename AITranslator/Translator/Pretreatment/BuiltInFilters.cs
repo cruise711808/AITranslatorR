@@ -59,17 +59,25 @@ namespace AITranslator.Translator.Pretreatment
     public sealed class PreprocessStats
     {
         /// <summary>
+        /// 原始文件条目数
+        /// </summary>
+        public int SourceTotal { get; set; }
+        /// <summary>
         /// 进入内置过滤的条目总数（即通过清理规则后剩下的条目）
         /// </summary>
         public int Total { get; set; }
         /// <summary>
-        /// 被引擎数据黑名单剔除的条目数
+        /// 被引擎数据黑名单/代码过滤剔除的条目数
         /// </summary>
         public int EngineRemoved { get; set; }
         /// <summary>
         /// 被源语言过滤剔除的条目数
         /// </summary>
         public int LanguageRemoved { get; set; }
+        /// <summary>
+        /// 被清理规则模板剔除的条目数
+        /// </summary>
+        public int RemovedByTemplate => SourceTotal - Total;
         /// <summary>
         /// 需要翻译的条目数
         /// </summary>

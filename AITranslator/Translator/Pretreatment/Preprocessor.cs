@@ -55,6 +55,8 @@ namespace AITranslator.Translator.Pretreatment
         {
             List<string> notCleanStrs = getNotCleanStrs(input.SelectMany(s => s.Value.Keys).ToList(), scriptPath, token);
             HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
+            if (stats is not null)
+                stats.SourceTotal = input.SelectMany(s => s.Value.Keys).Count();
 
             Dictionary<string, Dictionary<string, string?>> output = new Dictionary<string, Dictionary<string, string?>>();
             foreach (var kv in input)
@@ -85,6 +87,8 @@ namespace AITranslator.Translator.Pretreatment
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Select(s => s.Key).ToList(), scriptPath, token);
             HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
+            if (stats is not null)
+                stats.SourceTotal = input.Count;
 
             Dictionary<string, string> output = new Dictionary<string, string>();
             foreach (var kv in input)
@@ -111,6 +115,8 @@ namespace AITranslator.Translator.Pretreatment
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Select(s => s.Value.Text).ToList(), scriptPath, token);
             HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
+            if (stats is not null)
+                stats.SourceTotal = input.Count;
 
             Dictionary<int, SrtData> output = new Dictionary<int, SrtData>();
             KeyValuePair<int, SrtData>[] kvs = input.OrderBy(s => s.Key).ToArray();
@@ -140,6 +146,8 @@ namespace AITranslator.Translator.Pretreatment
         public static List<string> Pretreatment(this List<string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null, PreprocessStats? stats = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Where(s => true).ToList(), scriptPath, token);
+            if (stats is not null)
+                stats.SourceTotal = input.Count;
             if (options is null && stats is null)
                 return notCleanStrs;
 

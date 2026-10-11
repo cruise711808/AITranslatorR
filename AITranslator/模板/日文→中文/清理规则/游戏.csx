@@ -26174,11 +26174,35 @@ Dictionary<Regex, bool> regexes = new Dictionary<Regex, bool>()
 };  // 匹配不包含日文字符
 
 
+// —— 游戏代码/资源/标识符过滤：命中即剔除（不加入返回列表）——
+Regex[] codeRegexes = new Regex[]
+{
+    new Regex(@"\w+\s*\("),                                                          // 函数调用 name(
+    new Regex(@"==|!=|<=|>=|&&|\|\||\+=|-=|\*=|/=|:="),                              // 代码运算符
+    new Regex(@"\b(persistent|renpy|store|config|gui)\.", RegexOptions.IgnoreCase),  // 引擎命名空间
+    new Regex(@"""\+|\+"""),                                                         // 字符串拼接/插值
+    new Regex(@"\s=\s|^\s*\$"),                                                      // 赋值 / Ren'Py $ python 行
+    new Regex(@"\.(png|jpg|jpeg|webp|gif|bmp|ogg|opus|mp3|wav|flac|webm|mp4|avi|mkv|ttf|otf|woff2?|json|txt|csv|xml|ini|py|rpy|rpyc|pyc|dll|exe|rpa|rpym|rpyb)\b", RegexOptions.IgnoreCase), // 资源扩展名
+    new Regex(@"[/\\]"),                                                             // 路径分隔符
+    new Regex(@"^[A-Za-z0-9_]*_[A-Za-z0-9_]*$"),                                     // 变量标识符 __main__ / D12JadeAlt_28
+};
+
+bool IsGameCode(string s)
+{
+    foreach (var re in codeRegexes)
+        if (re.IsMatch(s))
+            return true;
+    return false;
+}
+
 List<string> output = new List<string>();
 
 foreach (var Str in Strs)
 {
     if (clearDics.ContainsKey(Str))
+        continue;
+
+    if (IsGameCode(Str))
         continue;
 
     bool needAdd = true;
