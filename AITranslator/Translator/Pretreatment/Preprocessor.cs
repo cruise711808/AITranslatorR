@@ -1,5 +1,4 @@
-﻿using AITranslator.Translator.Communicator;
-using AITranslator.Translator.Tools;
+﻿using AITranslator.Translator.Tools;
 using AITranslator.Translator.TranslateData;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -10,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using static LLama.Common.ChatHistory;
@@ -27,15 +27,26 @@ namespace AITranslator.Translator.Pretreatment
     public static class Preprocessor
     {
         /// <summary>
+        /// 内置过滤：引擎数据黑名单 + 源语言过滤。命中即剔除，不参与翻译。
+        /// </summary>
+        static bool ShouldKeepByBuiltIn(string value, PreprocessOptions? options)
+        {
+            if (options is null)
+                return true;
+            if (options.UseEngineBlacklist && EngineBlacklist.Contains(value))
+                return false;
+            if (options.UseLanguageFilter && !LanguageFilter.ShouldKeep(value, options.SourceLanguage))
+                return false;
+            return true;
+        }
+
+        /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        /// <param name="input">要被翻译的数据</param>
-        /// <param name="isEnglish"></param>
-        /// <param name="dic_block"></param>
-        /// <returns></returns>
-        public static Dictionary<string, Dictionary<string, string?>> Pretreatment(this Dictionary<string, Dictionary<string, string?>> input, string scriptPath, CancellationToken token)
+        public static Dictionary<string, Dictionary<string, string?>> Pretreatment(this Dictionary<string, Dictionary<string, string?>> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.SelectMany(s => s.Value.Keys).ToList(), scriptPath, token);
+            HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
 
             Dictionary<string, Dictionary<string, string?>> output = new Dictionary<string, Dictionary<string, string?>>();
             foreach (var kv in input)
@@ -44,27 +55,26 @@ namespace AITranslator.Translator.Pretreatment
                 {
                     if (token.IsCancellationRequested)
                         throw new OperationCanceledException("清理任务被终止", token);
-                    if (notCleanStrs.Contains(key))
-                    {
-                        if (!output.ContainsKey(kv.Key))
-                            output[kv.Key] = new Dictionary<string, string?>();
-                        output[kv.Key][key] = key.Normalize(NormalizationForm.FormKC);//标准化字符串格式
-                    }
+                    if (!keepSet.Contains(key))
+                        continue;
+                    if (!ShouldKeepByBuiltIn(key, options))
+                        continue;
+                    if (!output.ContainsKey(kv.Key))
+                        output[kv.Key] = new Dictionary<string, string?>();
+                    output[kv.Key][key] = key.Normalize(NormalizationForm.FormKC);//标准化字符串格式
                 }
             }
 
             return output;
         }
+
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        /// <param name="input">要被翻译的数据</param>
-        /// <param name="isEnglish"></param>
-        /// <param name="dic_block"></param>
-        /// <returns></returns>
-        public static Dictionary<string, string> Pretreatment(this Dictionary<string, string> input, string scriptPath, CancellationToken token)
+        public static Dictionary<string, string> Pretreatment(this Dictionary<string, string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Select(s => s.Key).ToList(), scriptPath, token);
+            HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
 
             Dictionary<string, string> output = new Dictionary<string, string>();
             foreach (var kv in input)
@@ -72,8 +82,11 @@ namespace AITranslator.Translator.Pretreatment
                 if (token.IsCancellationRequested)
                     throw new OperationCanceledException("清理任务被终止", token);
                 string key = kv.Key;
-                if (notCleanStrs.Contains(key))
-                    output[key] = kv.Value.Normalize(NormalizationForm.FormKC);//标准化字符串格式
+                if (!keepSet.Contains(key))
+                    continue;
+                if (!ShouldKeepByBuiltIn(key, options))
+                    continue;
+                output[key] = kv.Value.Normalize(NormalizationForm.FormKC);//标准化字符串格式
             }
 
             return output;
@@ -82,27 +95,26 @@ namespace AITranslator.Translator.Pretreatment
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        /// <param name="input">要被翻译的数据</param>
-        /// <param name="isEnglish"></param>
-        /// <param name="dic_block"></param>
-        /// <returns></returns>
-        public static Dictionary<int, SrtData> Pretreatment(this Dictionary<int, SrtData> input, string scriptPath, CancellationToken token)
+        public static Dictionary<int, SrtData> Pretreatment(this Dictionary<int, SrtData> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Select(s => s.Value.Text).ToList(), scriptPath, token);
+            HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
 
             Dictionary<int, SrtData> output = new Dictionary<int, SrtData>();
             KeyValuePair<int, SrtData>[] kvs = input.OrderBy(s => s.Key).ToArray();
             int t = 1;
             for (int i = 0; i < kvs.Length; i++)
             {
+                if (token.IsCancellationRequested)
+                    throw new OperationCanceledException("清理任务被终止", token);
                 KeyValuePair<int, SrtData> kv = kvs[i];
                 string text = kv.Value.Text;
-                if (notCleanStrs.Contains(text))
-                {
-                    output[t] = kv.Value;
-                    t++;
-                }
-
+                if (!keepSet.Contains(text))
+                    continue;
+                if (!ShouldKeepByBuiltIn(text, options))
+                    continue;
+                output[t] = kv.Value;
+                t++;
             }
 
             return output;
@@ -111,13 +123,12 @@ namespace AITranslator.Translator.Pretreatment
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        /// <param name="input">要被翻译的数据</param>
-        /// <param name="isEnglish"></param>
-        /// <param name="dic_block"></param>
-        /// <returns></returns>
-        public static List<string> Pretreatment(this List<string> input, string scriptPath, CancellationToken token)
+        public static List<string> Pretreatment(this List<string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
         {
-            return getNotCleanStrs(input.Where(s => true).ToList(), scriptPath, token);
+            List<string> notCleanStrs = getNotCleanStrs(input.Where(s => true).ToList(), scriptPath, token);
+            if (options is null)
+                return notCleanStrs;
+            return notCleanStrs.Where(s => ShouldKeepByBuiltIn(s, options)).ToList();
         }
 
 

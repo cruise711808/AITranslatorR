@@ -62,6 +62,11 @@ namespace AITranslator.Translator.Models
         /// 额外的参数
         /// </summary>
         public string ExpendedParams { get; set; }
+
+        /// <summary>
+        /// 同时向模型发送的并发请求数（仅OpenAI通讯器生效，默认4）
+        /// </summary>
+        public int ThreadCount { get; set; } = 4;
         #endregion
 
 
@@ -83,6 +88,7 @@ namespace AITranslator.Translator.Models
                     ApiKey = vm.ApiKey;
                     ServerURL = vm.ServerURL;
                     ExpendedParams = vm.ExpendedParams;
+                    ThreadCount = vm.ThreadCount;
                     break;
                 default:
                     break;
@@ -108,6 +114,7 @@ namespace AITranslator.Translator.Models
                     vm.ApiKey = ApiKey;
                     vm.ServerURL = ServerURL;
                     vm.ExpendedParams = ExpendedParams;
+                    vm.ThreadCount = ThreadCount <= 0 ? 4 : ThreadCount;
                     break;
                 default:
                     break;
@@ -132,7 +139,8 @@ namespace AITranslator.Translator.Models
                     return Model == cfg.Model &&
                            ApiKey == cfg.ApiKey &&
                            ServerURL == cfg.ServerURL &&
-                           ExpendedParams == cfg.ExpendedParams;
+                           ExpendedParams == cfg.ExpendedParams &&
+                           ThreadCount == cfg.ThreadCount;
                 default:
                     return false;
             }

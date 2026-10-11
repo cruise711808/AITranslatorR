@@ -41,50 +41,54 @@ namespace AITranslator.Translator.Translation
                 {
                     KeyValuePair<int, SrtData> kv_Translated = Data.Dic_Successful.ElementAt(i);
                     SrtData source = Data.Dic_Cleaned[kv_Translated.Key];
-                    AddHistory(source.Text, kv_Translated.Value.Text);
+                    AddHistory(_history, source.Text, kv_Translated.Value.Text);
                 }
             }
         }
         internal override void Translate()
         {
-            //遍历未被翻译的数据
-            foreach (var kv in Data.Dic_NotTranslated)
+            var items = Data.Dic_NotTranslated.ToArray();
+            RunShards((shardIndex, shardCount, history) =>
             {
-                int key = kv.Key;
-                SrtData value = kv.Value;
-                string source = value.Text;
+                int start = items.Length * shardIndex / shardCount;
+                int end = items.Length * (shardIndex + 1) / shardCount;
 
-                foreach (var kv_replace in _replaces)
-                    source = source.Replace(kv_replace.Key, kv_replace.Value);
-
-                string result_single = Translate_NoResetNewline(source, true, TryTranslateType.Single);
-
-                if (!Verification(source, result_single, out string error))
+                for (int index = start; index < end; index++)
                 {
-                    ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                    ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
-                    result_single = Translate_NoResetNewline(source, true, TryTranslateType.Retry);
-                    if (!Verification(source, result_single, out error))
-                    {
-                        SrtData faildData = value.Clone();
-                        faildData.Text = result_single;
-                        Data.Dic_Failed[key] = faildData;
-                        SaveFailedFile();
-                        CalculateProgress();
-                        ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                        ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
-                        continue;
-                    }
-                }
+                    int key = items[index].Key;
+                    SrtData value = items[index].Value;
+                    string source = value.Text;
 
-                SrtData trnaslatedData = value.Clone();
-                trnaslatedData.Text = result_single;
-                Data.Dic_Successful[key] = trnaslatedData;
-                SaveSuccessfulFile();
-                AddHistory(source, result_single);
-                CalculateProgress();
-                ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
-            }
+                    foreach (var kv_replace in _replaces)
+                        source = source.Replace(kv_replace.Key, kv_replace.Value);
+
+                    string result_single = Translate_NoResetNewline(source, true, TryTranslateType.Single, history);
+
+                    if (!Verification(source, result_single, out string error))
+                    {
+                        ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                        ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
+                        result_single = Translate_NoResetNewline(source, true, TryTranslateType.Retry, history);
+                        if (!Verification(source, result_single, out error))
+                        {
+                            SrtData faildData = value.Clone();
+                            faildData.Text = result_single;
+                            RecordFailure(Data.Dic_Failed!, key, faildData);
+                            CalculateProgress();
+                            ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
+                            continue;
+                        }
+                    }
+
+                    SrtData trnaslatedData = value.Clone();
+                    trnaslatedData.Text = result_single;
+                    RecordSuccess(Data.Dic_Successful!, key, trnaslatedData);
+                    AddHistory(history, source, result_single);
+                    CalculateProgress();
+                    ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                }
+            });
         }
 
         internal override void MergeData()

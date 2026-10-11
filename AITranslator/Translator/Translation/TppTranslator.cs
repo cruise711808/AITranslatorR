@@ -49,92 +49,94 @@ namespace AITranslator.Translator.Translation
                 for (int i = Convert.ToInt32(endIndex); i < Data.Dic_Successful.Count; i++)
                 {
                     KeyValuePair<string, string> kv = Data.Dic_Successful.ElementAt(i);
-                    AddHistory(kv.Key, kv.Value);
+                    AddHistory(_history, kv.Key, kv.Value!);
                 }
             }
         }
         internal override void Translate()
         {
-            int MaxLength = 100;
-            int length = 0;
-            List<string> mergeKeys = new List<string>();
-            List<string> mergeValues = new List<string>();
-
-            //遍历未被翻译的数据
-            foreach (var kv in Data.Dic_NotTranslated)
+            var items = Data.Dic_NotTranslated.ToArray();
+            RunShards((shardIndex, shardCount, history) =>
             {
-                string key = kv.Key;
-                string value = kv.Value;
+                int start = items.Length * shardIndex / shardCount;
+                int end = items.Length * (shardIndex + 1) / shardCount;
 
-                foreach (var kv_replace in _replaces)
-                    value = value.Replace(kv_replace.Key, kv_replace.Value);
+                int MaxLength = 100;
+                int length = 0;
+                List<string> mergeKeys = new List<string>();
+                List<string> mergeValues = new List<string>();
 
-                mergeKeys.Add(key);
-                mergeValues.Add(value);
-                length += value.Length;
-
-                //如果合并后的字符串长度超过100了,进行合并翻译
-                if (length >= MaxLength || kv.Equals(Data.Dic_NotTranslated.Last()))
+                for (int index = start; index < end; index++)
                 {
-                    string[] results;
-                    if (mergeValues.Count == 1)//进行单句翻译
-                        results = new string[] { Translate_Single(mergeValues[0], true, false) };
-                    else //进行合并翻译
-                        results = Translate_Mult(mergeValues, true);
+                    string key = items[index].Key;
+                    string value = items[index].Value!;
 
-                    if (results == null)//如果合并翻译失败,则逐条翻译
+                    foreach (var kv_replace in _replaces)
+                        value = value.Replace(kv_replace.Key, kv_replace.Value);
+
+                    mergeKeys.Add(key);
+                    mergeValues.Add(value);
+                    length += value.Length;
+
+                    //如果合并后的字符串长度超过100了,进行合并翻译
+                    if (length >= MaxLength || index == end - 1)
                     {
-                        ViewModelManager.WriteLine($"[{DateTime.Now:G}]批量翻译换行数量不匹配，改为逐条翻译。");
-                        for (int i = 0; i < mergeValues.Count; i++)
+                        string[] results;
+                        if (mergeValues.Count == 1)//进行单句翻译
+                            results = new string[] { Translate_Single(mergeValues[0], true, false, history) };
+                        else //进行合并翻译
+                            results = Translate_Mult(mergeValues, true, history);
+
+                        if (results == null)//如果合并翻译失败,则逐条翻译
                         {
-                            //单句翻译
-                            string result_single = Translate_Single(mergeValues[i], true, false);
-                            //检测翻译结果是否通过
-                            if (ResultVerification(mergeValues[i], ref result_single))
+                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]批量翻译换行数量不匹配，改为逐条翻译。");
+                            for (int i = 0; i < mergeValues.Count; i++)
                             {
-                                Data.Dic_Successful[mergeKeys[i]] = result_single;
-                                SaveSuccessfulFile();
-                                ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                            }
-                            else
-                            {
-                                Data.Dic_Failed[mergeValues[i]] = result_single;
-                                SaveFailedFile();
-                            }
+                                //单句翻译
+                                string result_single = Translate_Single(mergeValues[i], true, false, history);
+                                //检测翻译结果是否通过
+                                if (ResultVerification(mergeValues[i], ref result_single, history))
+                                {
+                                    RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
+                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                }
+                                else
+                                {
+                                    RecordFailure(Data.Dic_Failed!, mergeValues[i], result_single);
+                                }
 
-                            //计算进度
-                            CalculateProgress();
+                                //计算进度
+                                CalculateProgress();
+                            }
                         }
-                    }
-                    else
-                    {
-                        //逐条检测翻译结果是否通过
-                        for (int i = 0; i < mergeValues.Count; i++)
+                        else
                         {
-                            string result_single = results[i];
-                            if (ResultVerification(mergeValues[i], ref result_single))
+                            //逐条检测翻译结果是否通过
+                            for (int i = 0; i < mergeValues.Count; i++)
                             {
-                                Data.Dic_Successful[mergeKeys[i]] = result_single;
-                                SaveSuccessfulFile();
-                                ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                            }
-                            else
-                            {
-                                Data.Dic_Failed[mergeKeys[i]] = result_single;
-                                SaveFailedFile();
-                            }
+                                string result_single = results[i];
+                                if (ResultVerification(mergeValues[i], ref result_single, history))
+                                {
+                                    RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
+                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                }
+                                else
+                                {
+                                    RecordFailure(Data.Dic_Failed!, mergeKeys[i], result_single);
+                                }
 
-                            //计算进度
-                            CalculateProgress();
+                                //计算进度
+                                CalculateProgress();
+                            }
                         }
-                    }
 
-                    //重置合并翻译数据
-                    mergeKeys.Clear();
-                    mergeValues.Clear();
-                    length = 0;
+                        //重置合并翻译数据
+                        mergeKeys.Clear();
+                        mergeValues.Clear();
+                        length = 0;
+                    }
                 }
-            }
+            });
         }
 
         internal override void MergeData()
@@ -212,13 +214,13 @@ namespace AITranslator.Translator.Translation
         /// <param name="source">原始数据</param>
         /// <param name="translated">翻译后数据</param>
         /// <returns>校验是否通过</returns>
-        bool ResultVerification(string source, ref string translated)
+        bool ResultVerification(string source, ref string translated, Queue<ExampleDialogue> history)
         {
             if (!Verification(source, translated, out string error))
             {
                 ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + translated);
                 ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
-                string reTranslate = Translate_Single(source, false, true);
+                string reTranslate = Translate_Single(source, false, true, history);
                 if (Verification(source, translated, out error))
                     translated = reTranslate;
                 else
@@ -228,7 +230,7 @@ namespace AITranslator.Translator.Translation
                     return false;
                 }
             }
-            AddHistory(source, translated);
+            AddHistory(history, source, translated);
             return true;
         }
     }

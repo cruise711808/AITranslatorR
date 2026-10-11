@@ -93,6 +93,25 @@ namespace AITranslator.Translator.Translation
         internal Queue<ExampleDialogue> _history = new Queue<ExampleDialogue>();
 
         /// <summary>
+        /// 当前并发分块数（仅OpenAI通讯器时可能大于1）
+        /// </summary>
+        internal int _threadCount = 1;
+
+        /// <summary>
+        /// 翻译结果字典与翻译文件的同步锁（字典写入与序列化必须互斥）
+        /// </summary>
+        internal readonly object _sync = new object();
+
+        /// <summary>
+        /// 配置文件写入的同步锁
+        /// </summary>
+        readonly object _configSync = new object();
+
+        long _lastSuccessSaveTick;
+        long _lastFailSaveTick;
+        long _lastProgressSaveTick;
+
+        /// <summary>
         /// 替换词字典
         /// </summary>
         internal Dictionary<string, string> _replaces = new Dictionary<string, string>();
@@ -154,12 +173,129 @@ namespace AITranslator.Translator.Translation
 
 
         /// <summary>
-        /// 计算当前翻译进度
+        /// 计算当前翻译进度（线程安全，并对配置文件的写入做节流）
         /// </summary>
         internal void CalculateProgress()
         {
-            _translationTask.Progress = TranslateData.GetProgress();
-            _translationTask.SaveConfig(TaskState.Pause);
+            double progress;
+            lock (_sync)
+                progress = TranslateData.GetProgress();
+            _translationTask.Progress = progress;
+
+            long now = Environment.TickCount64;
+            if (now - _lastProgressSaveTick < 1000)
+                return;
+            lock (_configSync)
+            {
+                if (now - _lastProgressSaveTick < 1000)
+                    return;
+                _lastProgressSaveTick = now;
+                _translationTask.SaveConfig(TaskState.Pause);
+            }
+        }
+
+        /// <summary>
+        /// 记录一条翻译成功的记录（线程安全，并节流落盘）
+        /// </summary>
+        internal void RecordSuccess<TKey, TValue>(IDictionary<TKey, TValue> dic, TKey key, TValue value)
+        {
+            lock (_sync)
+                dic[key] = value;
+            ThrottledSaveSuccess();
+        }
+
+        /// <summary>
+        /// 记录一条翻译失败的记录（线程安全，并节流落盘）
+        /// </summary>
+        internal void RecordFailure<TKey, TValue>(IDictionary<TKey, TValue> dic, TKey key, TValue value)
+        {
+            lock (_sync)
+                dic[key] = value;
+            ThrottledSaveFailure();
+        }
+
+        void ThrottledSaveSuccess()
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastSuccessSaveTick < 500)
+                return;
+            lock (_sync)
+            {
+                if (now - _lastSuccessSaveTick < 500)
+                    return;
+                _lastSuccessSaveTick = now;
+                SaveSuccessfulFile();
+            }
+        }
+
+        void ThrottledSaveFailure()
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastFailSaveTick < 500)
+                return;
+            lock (_sync)
+            {
+                if (now - _lastFailSaveTick < 500)
+                    return;
+                _lastFailSaveTick = now;
+                SaveFailedFile();
+            }
+        }
+
+        /// <summary>
+        /// 将待翻译数据拆分为 <paramref name="shardCount"/> 个分块并发执行。
+        /// 单线程时直接使用已有历史上下文；并发时每个分块各持一份历史快照，
+        /// 从而在分块内保持上下文顺序的同时实现块间并行。
+        /// </summary>
+        internal void RunShards(Action<int, int, Queue<ExampleDialogue>> shardAction)
+        {
+            int n = Math.Max(1, _threadCount);
+            if (n == 1)
+            {
+                shardAction(0, 1, _history);
+                return;
+            }
+
+            ExampleDialogue[] snapshot = _history.ToArray();
+            Queue<ExampleDialogue>[] histories = new Queue<ExampleDialogue>[n];
+            for (int i = 0; i < n; i++)
+                histories[i] = new Queue<ExampleDialogue>(snapshot);
+
+            Exception? captured = null;
+            Task[] tasks = new Task[n];
+            for (int i = 0; i < n; i++)
+            {
+                int idx = i;
+                tasks[i] = Task.Run(() =>
+                {
+                    try
+                    {
+                        shardAction(idx, n, histories[idx]);
+                    }
+                    catch (Exception ex)
+                    {
+                        lock (_sync)
+                        {
+                            captured ??= ex;
+                        }
+                    }
+                });
+            }
+            Task.WaitAll(tasks);
+            if (captured is not null)
+                throw captured;
+
+            // 合并各分块的历史上下文，供后续重翻流程使用
+            int maxCount = _translationTask.TemplateConfigParams.HistoryCount * 2;
+            _history.Clear();
+            foreach (var h in histories)
+                foreach (var d in h)
+                    _history.Enqueue(d);
+            while (_history.Count > maxCount && _history.Count >= 2)
+            {
+                _history.Dequeue();
+                _history.Dequeue();
+            }
         }
 
         /// <summary>
@@ -197,19 +333,24 @@ namespace AITranslator.Translator.Translation
                             if (!File.Exists(cleanTemplatePath))
                                 throw new FileNotFoundException($"清理模板文件[{cleanTemplateName}]不存在，请确认配置文件是否已被删除");
 
+                            //依据模板文件夹推断源语言，用于内置的引擎数据/语言过滤（预处理阶段）
+                            PreprocessOptions preprocessOptions = new PreprocessOptions()
+                            {
+                                SourceLanguage = PreprocessOptions.ParseSourceLanguage(_translationTask.TemplateConfigParams.TemplateDic)
+                            };
                             switch (Type)
                             {
                                 case TranslateDataType.KV:
-                                    KVTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token);
+                                    KVTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
                                     break;
                                 case TranslateDataType.Tpp:
-                                    TppTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token);
+                                    TppTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
                                     break;
                                 case TranslateDataType.Srt:
-                                    SrtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token);
+                                    SrtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
                                     break;
                                 case TranslateDataType.Txt:
-                                    TxtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token);
+                                    TxtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
                                     break;
                                 default:
                                     throw new KnownException("不支持的翻译文件类型");
@@ -237,6 +378,10 @@ namespace AITranslator.Translator.Translation
                             ViewModelManager.ViewModel.Communicator.ExpendedParams),
                         _ => throw ExceptionThrower.InvalidCommunicator,
                     };
+                    //设置并发分块数（仅OpenAI通讯器支持并发，内置加载器强制单线程）
+                    _threadCount = ViewModelManager.ViewModel.Communicator.CommunicatorType == CommunicatorType.OpenAI
+                        ? Math.Clamp(ViewModelManager.ViewModel.Communicator.ThreadCount, 1, 32)
+                        : 1;
                     TranslateData.GetUntranslatedData();
                     _history.Clear();
                     LoadHistory();
@@ -415,17 +560,17 @@ namespace AITranslator.Translator.Translation
         /// </summary>
         /// <param name="source">原始数据</param>
         /// <param name="translated">翻译后数据</param>
-        internal void AddHistory(string source, string translated)
+        internal void AddHistory(Queue<ExampleDialogue> history, string source, string translated)
         {
             if (_translationTask.TemplateConfigParams.HistoryCount > 0)
             {
-                if (_history.Count >= _translationTask.TemplateConfigParams.HistoryCount * 2)
+                if (history.Count >= _translationTask.TemplateConfigParams.HistoryCount * 2)
                 {
-                    _history.Dequeue();
-                    _history.Dequeue();
+                    history.Dequeue();
+                    history.Dequeue();
                 }
-                _history.Enqueue(new("user", $"这里是你需要翻译的文本：{source}"));
-                _history.Enqueue(new("assistant", translated));
+                history.Enqueue(new("user", $"这里是你需要翻译的文本：{source}"));
+                history.Enqueue(new("assistant", translated));
             }
         }
 
@@ -435,7 +580,7 @@ namespace AITranslator.Translator.Translation
         /// </summary>
         /// <param name="mergeValues">合并后的待翻译字符串列表</param>
         /// <returns>翻译完成的字符串列表</returns>
-        internal string[] Translate_Mult(List<string> mergeValues, bool useHistory)
+        internal string[] Translate_Mult(List<string> mergeValues, bool useHistory, Queue<ExampleDialogue> history)
         {
             List<Dictionary<string, List<double>>> positions_list = new List<Dictionary<string, List<double>>>();
             List<string> processed_texts = new List<string>();
@@ -447,7 +592,7 @@ namespace AITranslator.Translator.Translation
             }
 
             string str_join = string.Join('\n', processed_texts);
-            string str_result = TryTranslate(str_join, _example[^1].content! + "\n", useHistory, TryTranslateType.Mult);
+            string str_result = TryTranslate(str_join, _example[^1].content! + "\n", useHistory, TryTranslateType.Mult, history);
 
             //如果返回结果的换行符数量不一致，调用逐句翻译模式
             string[] strs_result = str_result.Split('\n');
@@ -469,18 +614,18 @@ namespace AITranslator.Translator.Translation
         /// <param name="temperature">温度</param>
         /// <param name="frequencyPenalty">频率惩罚</param>
         /// <returns>翻译完成的字符串</returns>
-        internal string Translate_Single(string value, bool useHistory, bool retry)
+        internal string Translate_Single(string value, bool useHistory, bool retry, Queue<ExampleDialogue> history)
         {
             (Dictionary<string, List<double>>, string) result = value.CalculateNewlinePositions(escapeChars);
             Dictionary<string, List<double>> positions = result.Item1;
             string processed_texts = result.Item2;
-            string str_result = TryTranslate(processed_texts, _example[^1].content!, useHistory, retry ? TryTranslateType.Retry : TryTranslateType.Single).InsertNewlines(positions);
+            string str_result = TryTranslate(processed_texts, _example[^1].content!, useHistory, retry ? TryTranslateType.Retry : TryTranslateType.Single, history).InsertNewlines(positions);
             return str_result;
         }
 
-        internal string Translate_NoResetNewline(string value, bool useHistory, TryTranslateType type)
+        internal string Translate_NoResetNewline(string value, bool useHistory, TryTranslateType type, Queue<ExampleDialogue> history)
         {
-            string str_result = TryTranslate(value, _example[^1].content!, useHistory, type);
+            string str_result = TryTranslate(value, _example[^1].content!, useHistory, type, history);
             return str_result;
         }
 
@@ -494,10 +639,10 @@ namespace AITranslator.Translator.Translation
         /// <param name="frequencyPenalty">频率惩罚</param>
         /// <returns>翻译完成的字符串</returns>
         /// <exception cref="KnownException">出现的已知错误</exception>
-        internal string TryTranslate(string str, string prompt_with_text, bool useHistory, TryTranslateType type)
+        internal string TryTranslate(string str, string prompt_with_text, bool useHistory, TryTranslateType type, Queue<ExampleDialogue> history)
         {
             ExampleDialogue[] headers = _example[..^1];
-            ExampleDialogue[] histories = useHistory ? _history.ToArray() : Array.Empty<ExampleDialogue>();
+            ExampleDialogue[] histories = useHistory ? history.ToArray() : Array.Empty<ExampleDialogue>();
 
 
             ConfigSave_TranslatePrams? param = GetTranslatePrams(type);

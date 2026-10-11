@@ -98,6 +98,11 @@ namespace AITranslator.View.Models
         /// </summary>
         [ObservableProperty]
         private string expendedParams;
+        /// <summary>
+        /// 同时向模型发送的并发请求数（仅OpenAI通讯器生效，默认4）
+        /// </summary>
+        [ObservableProperty]
+        private int threadCount = 4;
         #endregion
 
         List<string> OpenAIParams = [nameof(Model), nameof(ApiKey), nameof(ServerURL), nameof(ExpendedParams)];

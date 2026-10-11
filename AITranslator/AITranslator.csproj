@@ -36,6 +36,7 @@
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="CsvHelper" Version="33.0.1" />
 		<PackageReference Include="H.NotifyIcon.Wpf" Version="2.2.0" />
+		<PackageReference Include="LanguageDetection.Ai" Version="1.1.0" />
 		<PackageReference Include="LLamaSharp" Version="0.20.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.12.0" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
@@ -57,6 +58,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="engine_blacklist.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="加载器\TGW.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

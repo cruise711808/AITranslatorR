@@ -17,7 +17,6 @@ namespace AITranslator.Translator.Communicator
 {
     internal class OpenAICommunicator : ICommunicator
     {
-        Stopwatch sw = new Stopwatch();
         HttpClient _client;
         Uri _url;
         string _api_key;
@@ -31,7 +30,11 @@ namespace AITranslator.Translator.Communicator
             _api_key = api_key;
             _modelName = modelName;
             _expendedParams = expendedParams;
-            _client = new HttpClient()
+            _client = new HttpClient(new SocketsHttpHandler()
+            {
+                MaxConnectionsPerServer = 64,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            })
             {
                 Timeout = TimeSpan.FromMinutes(10)
             };
@@ -53,6 +56,7 @@ namespace AITranslator.Translator.Communicator
             string str_result = string.Empty;
             int tryCount = 0;
             bool retry = true;
+            Stopwatch sw = new Stopwatch();
             while (retry)
             {
                 try

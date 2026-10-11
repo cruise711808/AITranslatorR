@@ -83,6 +83,10 @@ namespace AITranslator.Translator.Models
         /// 屏蔽数据所在的位置
         /// </summary>
         public const string BlockPath = $"{ParamsDataDic}/屏蔽列表.json";
+        /// <summary>
+        /// 内置引擎数据黑名单（由多个游戏原始导出文件交叉生成，命中即不翻译）
+        /// </summary>
+        public const string EngineBlacklistPath = "engine_blacklist.json";
 
         public static string GetFileName(ITranslateData data, GenerateFileType FileType)
         {
