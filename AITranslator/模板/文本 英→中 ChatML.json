@@ -4,9 +4,9 @@
   "ReplaceTemplate": "空",
   "VerificationTemplate": "文本",
   "CleanTemplate": "不清理",
-  "HistoryCount": 5,
+  "HistoryCount": 0,
   "TranslatePrams_FirstMult": {
-    "MaxTokens": 1024,
+    "MaxTokens": 8192,
     "Temperature": 0.2,
     "FrequencyPenalty": 0.0,
     "PresencePenalty": 0.0,
@@ -19,7 +19,7 @@
     ]
   },
   "TranslatePrams_FirstSingle": {
-    "MaxTokens": 600,
+    "MaxTokens": 8192,
     "Temperature": 0.2,
     "FrequencyPenalty": 0.0,
     "PresencePenalty": 0.0,
@@ -32,7 +32,7 @@
     ]
   },
   "TranslatePrams_Retry": {
-    "MaxTokens": 600,
+    "MaxTokens": 8192,
     "Temperature": 0.1,
     "FrequencyPenalty": 0.15,
     "PresencePenalty": 0.0,

@@ -4,9 +4,9 @@
   "ReplaceTemplate": "空",
   "VerificationTemplate": "游戏",
   "CleanTemplate": "游戏",
-  "HistoryCount": 5,
+  "HistoryCount": 0,
   "TranslatePrams_FirstMult": {
-    "MaxTokens": 400,
+    "MaxTokens": 8192,
     "Temperature": 0.6,
     "FrequencyPenalty": 0.0,
     "PresencePenalty": 0.0,
@@ -19,7 +19,7 @@
     ]
   },
   "TranslatePrams_FirstSingle": {
-    "MaxTokens": 200,
+    "MaxTokens": 8192,
     "Temperature": 0.6,
     "FrequencyPenalty": 0.0,
     "PresencePenalty": 0.0,
@@ -32,7 +32,7 @@
     ]
   },
   "TranslatePrams_Retry": {
-    "MaxTokens": 200,
+    "MaxTokens": 8192,
     "Temperature": 0.1,
     "FrequencyPenalty": 0.15,
     "PresencePenalty": 0.0,

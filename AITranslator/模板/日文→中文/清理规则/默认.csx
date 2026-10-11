@@ -1,4 +1,4 @@
-﻿//Strs是脚本输入的变量,一个List<string> 类型的数据
+//Strs是脚本输入的变量,一个List<string> 类型的数据
 //需要返回的也是一个List<string>，这个List里包含的是需要被保留的数据
 
 using System.Collections.Generic;
@@ -31,21 +31,47 @@ Dictionary<Regex, bool> regexes = new Dictionary<Regex, bool>()
 // —— 游戏代码/资源/标识符过滤：命中即剔除（不加入返回列表）——
 Regex[] codeRegexes = new Regex[]
 {
-    new Regex(@"\w+\s*\("),                                                          // 函数调用 name(
-    new Regex(@"==|!=|<=|>=|&&|\|\||\+=|-=|\*=|/=|:="),                              // 代码运算符
-    new Regex(@"\b(persistent|renpy|store|config|gui)\.", RegexOptions.IgnoreCase),  // 引擎命名空间
-    new Regex(@"""\+|\+"""),                                                         // 字符串拼接/插值
-    new Regex(@"\s=\s|^\s*\$"),                                                      // 赋值 / Ren'Py $ python 行
-    new Regex(@"\.(png|jpg|jpeg|webp|gif|bmp|ogg|opus|mp3|wav|flac|webm|mp4|avi|mkv|ttf|otf|woff2?|json|txt|csv|xml|ini|py|rpy|rpyc|pyc|dll|exe|rpa|rpym|rpyb)\b", RegexOptions.IgnoreCase), // 资源扩展名
-    new Regex(@"[/\\]"),                                                             // 路径分隔符
-    new Regex(@"^[A-Za-z0-9_]*_[A-Za-z0-9_]*$"),                                     // 变量标识符 __main__ / D12JadeAlt_28
+    new Regex(@"[/\\]"),
+    new Regex(@"\.(png|jpg|jpeg|webp|gif|bmp|ico|svg|ogg|opus|mp3|wav|flac|webm|mp4|avi|mkv|ttf|otf|woff2?|json|txt|csv|xml|ini|py|pyc|rpy|rpyc|rpyb|rpym|dll|exe|rpa|zip|gz)\b", RegexOptions.IgnoreCase),
+    new Regex(@"==|!=|<=|>=|&&|\|\||\+=|-=|\*=|/=|:="),
+    new Regex(@"="),
+    new Regex(@"\w+\s*\("),
+    new Regex(@"\b(persistent|renpy|store|config|gui|self)\."),
+    new Regex(@"""\+|\+"""),
+    new Regex(@"^\s*\$"),
+    new Regex(@":\s*$"),
+    new Regex(@"www\.|https?://|\b\w+\.(com|org|net|io|gg|co)\b|\b[^\s@]+@[^\s@]+\.[A-Za-z]{2,}\b"),
+    new Regex(@"^[^\p{L}\p{Nd}]+$"),
+    new Regex(@"^[A-Za-z0-9_]*_[A-Za-z0-9_]*$"),
+    new Regex(@"^[A-Za-z0-9_]*[A-Za-z][A-Za-z0-9_]*[0-9][A-Za-z0-9_]*$"),
+    new Regex(@"^[A-Za-z0-9_]*[0-9][A-Za-z0-9_]*[A-Za-z][A-Za-z0-9_]*$"),
+    new Regex(@"^(?=.{6,}$)[A-Za-z0-9]*[A-Z][A-Za-z0-9]*[A-Z][A-Za-z0-9]*$"),
+    new Regex(@"^(return|pass|break|continue|None|True|False|self|def|class|import|elif|try|except|finally|lambda|yield|global|assert|del|raise)$"),
 };
+
+int CountChar(string s, char c)
+{
+    int n = 0;
+    foreach (var ch in s)
+        if (ch == c)
+            n++;
+    return n;
+}
 
 bool IsGameCode(string s)
 {
+    string t = s.Trim();
+    if (t.Length == 0)
+        return false;
     foreach (var re in codeRegexes)
-        if (re.IsMatch(s))
+        if (re.IsMatch(t))
             return true;
+    if (CountChar(t, '(') != CountChar(t, ')'))
+        return true;
+    if (CountChar(t, '[') != CountChar(t, ']'))
+        return true;
+    if (CountChar(t, '{') != CountChar(t, '}'))
+        return true;
     return false;
 }
 
