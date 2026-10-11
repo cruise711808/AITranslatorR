@@ -55,10 +55,15 @@ namespace AITranslator.View.Models
         [ObservableProperty]
         private bool addTaskPopupShow;
         /// <summary>
-        /// 控制台输出内容
+        /// 初始化/总览日志（固定全部显示，不滚动）
         /// </summary>
         [ObservableProperty]
-        private ObservableQueue<string> consoles = new ObservableQueue<string>(200);
+        private ObservableQueue<string> consoles = new ObservableQueue<string>(int.MaxValue);
+        /// <summary>
+        /// API 调用详情日志（滚动，最多 400 行）
+        /// </summary>
+        [ObservableProperty]
+        private ObservableQueue<string> consolesApi = new ObservableQueue<string>(400);
         /// <summary>
         /// 是否手动翻译中
         /// </summary>
@@ -182,6 +187,24 @@ namespace AITranslator.View.Models
             try
             {
                 Dispatcher.Invoke(() => Consoles.Enqueue(Msg));
+            }
+            catch (TaskCanceledException)//如果此时UI线程已经停止，则略过
+            {
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 在 API 日志标签页打印日志
+        /// </summary>
+        /// <param name="Msg">要被打印的日志</param>
+        internal void ConsoleWriteLineApi(string Msg)
+        {
+            if (Dispatcher.HasShutdownStarted)
+                return;
+            try
+            {
+                Dispatcher.Invoke(() => ConsolesApi.Enqueue(Msg));
             }
             catch (TaskCanceledException)//如果此时UI线程已经停止，则略过
             {
@@ -320,6 +343,7 @@ namespace AITranslator.View.Models
         private void ClearLogs()
         {
             Consoles.Clear();
+            ConsolesApi.Clear();
         }
 
         [RelayCommand]

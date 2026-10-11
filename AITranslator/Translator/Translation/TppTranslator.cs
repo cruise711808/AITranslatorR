@@ -89,7 +89,7 @@ namespace AITranslator.Translator.Translation
 
                         if (results == null)//如果合并翻译失败,则逐条翻译
                         {
-                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]批量翻译换行数量不匹配，改为逐条翻译。");
+                            ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]批量翻译换行数量不匹配，改为逐条翻译。");
                             for (int i = 0; i < mergeValues.Count; i++)
                             {
                                 //单句翻译
@@ -98,7 +98,7 @@ namespace AITranslator.Translator.Translation
                                 if (ResultVerification(mergeValues[i], ref result_single, history))
                                 {
                                     RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
-                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                    ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
                                 }
                                 else
                                 {
@@ -118,7 +118,7 @@ namespace AITranslator.Translator.Translation
                                 if (ResultVerification(mergeValues[i], ref result_single, history))
                                 {
                                     RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
-                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                    ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
                                 }
                                 else
                                 {
@@ -218,15 +218,15 @@ namespace AITranslator.Translator.Translation
         {
             if (!Verification(source, translated, out string error))
             {
-                ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + translated);
-                ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
+                ViewModelManager.WriteLineApi($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + translated);
+                ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
                 string reTranslate = Translate_Single(source, false, true, history);
                 if (Verification(source, translated, out error))
                     translated = reTranslate;
                 else
                 {
-                    ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + translated);
-                    ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error},重试翻译仍未达标，记录到错误列表。");
+                    ViewModelManager.WriteLineApi($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + translated);
+                    ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error},重试翻译仍未达标，记录到错误列表。");
                     return false;
                 }
             }

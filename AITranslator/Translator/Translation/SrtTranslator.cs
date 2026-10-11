@@ -66,8 +66,8 @@ namespace AITranslator.Translator.Translation
 
                     if (!Verification(source, result_single, out string error))
                     {
-                        ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                        ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
+                        ViewModelManager.WriteLineApi($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                        ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
                         result_single = Translate_NoResetNewline(source, true, TryTranslateType.Retry, history);
                         if (!Verification(source, result_single, out error))
                         {
@@ -75,8 +75,8 @@ namespace AITranslator.Translator.Translation
                             faildData.Text = result_single;
                             RecordFailure(Data.Dic_Failed!, key, faildData);
                             CalculateProgress();
-                            ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
+                            ViewModelManager.WriteLineApi($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                            ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
                             continue;
                         }
                     }
@@ -86,7 +86,7 @@ namespace AITranslator.Translator.Translation
                     RecordSuccess(Data.Dic_Successful!, key, trnaslatedData);
                     AddHistory(history, source, result_single);
                     CalculateProgress();
-                    ViewModelManager.WriteLine($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                    ViewModelManager.WriteLineApi($"\r\n" + source + "\r\n" + "    ⬇" + "\r\n" + result_single);
                 }
             });
         }

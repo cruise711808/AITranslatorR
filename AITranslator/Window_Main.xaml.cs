@@ -35,7 +35,7 @@ namespace AITranslator
             //初始化ViewModel
             ViewModel vm = ViewModelManager.ViewModel;
             vm.Dispatcher = Dispatcher;
-            vm.Consoles.CollectionChanged += Consoles_CollectionChanged;
+            vm.ConsolesApi.CollectionChanged += Consoles_CollectionChanged;
             CheckTemplateChanged();
             Task.Factory.StartNew(CheckTemplateChangedCycle, TaskCreationOptions.LongRunning);
         }

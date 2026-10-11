@@ -80,14 +80,14 @@ namespace AITranslator.Translator.Communicator
                                     retry = false;
                                 }
                                 else
-                                    ViewModelManager.WriteLine($"解析返回数据失败,返回数据为:{json_result}");
+                                    ViewModelManager.WriteLineApi($"解析返回数据失败,返回数据为:{json_result}");
 
                             }
                             else
                             {
                                 if (string.IsNullOrWhiteSpace(json_result))
                                     json_result = "NULL";
-                                ViewModelManager.WriteLine($"服务回复状态错误[{Convert.ToInt32(httpResponse.StatusCode)}],返回数据为:{json_result}");
+                                ViewModelManager.WriteLineApi($"服务回复状态错误[{Convert.ToInt32(httpResponse.StatusCode)}],返回数据为:{json_result}");
                                 tryCount++;
                                 if (tryCount >= 3)
                                     throw new KnownException("错误:多次回复状态错误！");
@@ -109,7 +109,7 @@ namespace AITranslator.Translator.Communicator
                             throw new KnownException("按下暂停按钮");
                         else
                         {
-                            ViewModelManager.WriteLine("接收数据超时！");
+                            ViewModelManager.WriteLineApi("接收数据超时！");
                             tryCount++;
                             if (tryCount >= 3)
                                 throw new KnownException("错误:多次接收数据超时！");
@@ -122,7 +122,7 @@ namespace AITranslator.Translator.Communicator
                     }
                     else if (innerEx is HttpRequestException)
                     {
-                        ViewModelManager.WriteLine(innerEx?.Message ?? string.Empty);
+                        ViewModelManager.WriteLineApi(innerEx?.Message ?? string.Empty);
                         tryCount++;
                         if (tryCount >= 3)
                             throw new KnownException("错误:多次连接服务失败！");

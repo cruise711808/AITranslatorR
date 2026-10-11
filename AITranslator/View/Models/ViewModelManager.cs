@@ -29,6 +29,14 @@ namespace AITranslator.View.Models
         }
 
         /// <summary>
+        /// 打印 API 调用详情到 API 日志标签页
+        /// </summary>
+        public static void WriteLineApi(string str)
+        {
+            ViewModel.ConsoleWriteLineApi(str);
+        }
+
+        /// <summary>
         /// 保存配置信息
         /// </summary>
         public static void SaveBaseConfig()

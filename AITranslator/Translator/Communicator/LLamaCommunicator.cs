@@ -226,7 +226,7 @@ namespace AITranslator.Translator.Communicator
                         _histories.RemoveRange(_histories.Count - 2, 2);
                         if (_histories.Count == 0)
                             throw new KnownException("当前上下文已无法再删减,请检查要翻译的文本是否过长，或升级设备配置");
-                        ViewModelManager.WriteLine($"[警告]:上下文长度超过当前设备配置能承载的极限，将减少上下文至{_histories.Count / 2}重新进行翻译，如频繁出现此警告，请考虑手动调整历史上下文后再继续翻译");
+                        ViewModelManager.WriteLineApi($"[警告]:上下文长度超过当前设备配置能承载的极限，将减少上下文至{_histories.Count / 2}重新进行翻译，如频繁出现此警告，请考虑手动调整历史上下文后再继续翻译");
                     }
                     else
                         throw;

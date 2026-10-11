@@ -86,7 +86,7 @@ namespace AITranslator.Translator.Translation
 
                         if (results.Length != mergeValues.Count)
                         {
-                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]批量翻译换行数量不匹配，改为逐条翻译。");
+                            ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]批量翻译换行数量不匹配，改为逐条翻译。");
                             for (int i = 0; i < mergeValues.Count; i++)
                             {
                                 //单句翻译
@@ -94,27 +94,27 @@ namespace AITranslator.Translator.Translation
                                 //检测翻译结果是否通过
                                 if (!Verification(mergeValues[i], result_single, out string error))
                                 {
-                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                                    ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
+                                    ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                    ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
                                     result_single = Translate_NoResetNewline(mergeValues[i], true, TryTranslateType.Retry, history);
                                     if (!Verification(mergeValues[i], result_single, out error))
                                     {
-                                        ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                                        ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
+                                        ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                        ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
                                         RecordFailure(Data.Dic_Failed!, mergeKeys[i], result_single);
                                     }
                                     else
                                     {
                                         RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
                                         AddHistory(history, mergeValues[i], result_single);
-                                        ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                        ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
                                     }
                                 }
                                 else
                                 {
                                     RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
                                     AddHistory(history, mergeValues[i], result_single);
-                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                    ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
                                 }
 
                                 //计算进度
@@ -129,27 +129,27 @@ namespace AITranslator.Translator.Translation
                                 string result_single = results[i];
                                 if (!Verification(mergeValues[i], result_single, out string error))
                                 {
-                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                                    ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
+                                    ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                    ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，正在尝试重新翻译...");
                                     result_single = Translate_NoResetNewline(mergeValues[i], true, TryTranslateType.Retry, history);
                                     if (!Verification(mergeValues[i], result_single, out error))
                                     {
-                                        ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
-                                        ViewModelManager.WriteLine($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
+                                        ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                        ViewModelManager.WriteLineApi($"[{DateTime.Now:G}]{error}，重试翻译仍未达标，记录到错误列表。");
                                         RecordFailure(Data.Dic_Failed!, mergeKeys[i], result_single);
                                     }
                                     else
                                     {
                                         RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
                                         AddHistory(history, mergeValues[i], result_single);
-                                        ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                        ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
                                     }
                                 }
                                 else
                                 {
                                     RecordSuccess(Data.Dic_Successful!, mergeKeys[i], result_single);
                                     AddHistory(history, mergeValues[i], result_single);
-                                    ViewModelManager.WriteLine($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
+                                    ViewModelManager.WriteLineApi($"\r\n" + mergeValues[i] + "\r\n" + "    ⬇" + "\r\n" + result_single);
                                 }
                             }
 
