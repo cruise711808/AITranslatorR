@@ -1,4 +1,5 @@
 ﻿using AITranslator.EventArg;
+using AITranslator.Translator.Pretreatment;
 using AITranslator.Translator.Translation;
 using Newtonsoft.Json.Linq;
 using System;
@@ -33,7 +34,7 @@ namespace AITranslator.Translator.TranslateData
         /// 替换和清理原始数据
         /// </summary>
         /// <param name="dicName"></param>
-        public abstract static void Clear(string dicName, string clearTemplatePath, CancellationToken token);
+        public abstract static void Clear(string dicName, string clearTemplatePath, CancellationToken token, PreprocessOptions? options = null);
 
         public abstract static bool HasFailedData(string dicName);
     }
