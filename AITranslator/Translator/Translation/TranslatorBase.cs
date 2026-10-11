@@ -86,6 +86,10 @@ namespace AITranslator.Translator.Translation
         internal TranslationTask _translationTask;
         readonly Script<(bool, string)> _verification;
         readonly VerificationScriptInput _verificationScriptInput = new VerificationScriptInput();
+        /// <summary>
+        /// 校验脚本运行的同步锁（Roslyn 脚本运行非线程安全，且复用同一输入对象，多线程并发运行会崩溃）
+        /// </summary>
+        readonly object _verificationSync = new object();
 
         /// <summary>
         /// 历史上下文
@@ -161,6 +165,17 @@ namespace AITranslator.Translator.Translation
             if (!File.Exists(verificationTemplatePath))
                 throw new FileNotFoundException($"校验规则模板[{task.TemplateConfigParams.VerificationTemplate}]不存在，请确认文件是否已被删除");
             _verification = CSharpScript.Create<(bool, string)>(File.ReadAllText(verificationTemplatePath), ScriptOptions.Default, globalsType: typeof(VerificationScriptInput));
+            //预热校验脚本：先单线程编译并加载一次动态程序集，避免多线程并发首次运行时重复加载导致崩溃
+            try
+            {
+                _verificationScriptInput.Untranslated = string.Empty;
+                _verificationScriptInput.Translated = string.Empty;
+                _ = _verification.RunAsync(_verificationScriptInput).Result;
+            }
+            catch
+            {
+                //预热失败不影响后续：真正校验时若脚本有误会照常抛出
+            }
             //创建Data
             TranslateData = task.TranslateType switch
             {
@@ -335,9 +350,23 @@ namespace AITranslator.Translator.Translation
                     }
                     catch (Exception ex)
                     {
+                        bool first;
                         lock (_sync)
                         {
+                            first = captured is null;
                             captured ??= ex;
+                        }
+                        // 任一分块出错立即取消其余分块，避免继续做无用功（含在途HTTP请求）
+                        if (first)
+                        {
+                            try
+                            {
+                                _cts?.Cancel();
+                                _communicator?.Cancel();
+                            }
+                            catch
+                            {
+                            }
                         }
                     }
                 });
@@ -611,11 +640,14 @@ namespace AITranslator.Translator.Translation
         /// <returns>校验是否通过</returns>
         internal bool Verification(string source, string translated, out string error)
         {
-            _verificationScriptInput.Untranslated = source;
-            _verificationScriptInput.Translated = translated;
-            (bool, string) result = _verification.RunAsync(_verificationScriptInput).Result.ReturnValue;
-            error = result.Item2;
-            return result.Item1;
+            lock (_verificationSync)
+            {
+                _verificationScriptInput.Untranslated = source;
+                _verificationScriptInput.Translated = translated;
+                (bool, string) result = _verification.RunAsync(_verificationScriptInput).Result.ReturnValue;
+                error = result.Item2;
+                return result.Item1;
+            }
         }
         /// <summary>
         /// 加载历史记录
