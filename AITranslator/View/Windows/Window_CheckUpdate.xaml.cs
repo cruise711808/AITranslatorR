@@ -60,7 +60,7 @@ namespace AITranslator.View.Windows
                 {
                     client.DefaultRequestHeaders.Add("User-Agent", "Tauri-fetch");
                     // 设置请求的URL
-                    string url = "https://api.github.com/repos/jxq1997216/AITranslator/releases/latest";
+                    string url = "https://api.github.com/repos/cruise711808/AITranslatorR/releases/latest";
 
                     // 发送GET请求并获取响应
 
@@ -108,7 +108,7 @@ namespace AITranslator.View.Windows
         {
             try
             {
-                var sInfo = new ProcessStartInfo("https://github.com/jxq1997216/AITranslator")
+                var sInfo = new ProcessStartInfo("https://github.com/cruise711808/AITranslatorR")
                 {
                     UseShellExecute = true,
                 };
