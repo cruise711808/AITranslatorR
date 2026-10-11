@@ -15,7 +15,29 @@
         PreviewDragEnter="Window_PreviewDragEnter"
         PreviewDrop="Window_PreviewDrop"
         mc:Ignorable="d"
-        Title="AI Translator" Height="600" Width="400" WindowStyle="None" ResizeMode="NoResize" DataContext="{Binding Source={x:Static vm:ViewModelManager.ViewModel}}" WindowStartupLocation="CenterScreen" Background="Transparent" AllowsTransparency="True" Loaded="Window_Loaded" Closing="window_main_Closing">
+        Title="AI Translator R" Height="600" Width="400" WindowStyle="None" ResizeMode="NoResize" DataContext="{Binding Source={x:Static vm:ViewModelManager.ViewModel}}" WindowStartupLocation="CenterScreen" Background="Transparent" AllowsTransparency="True" Loaded="Window_Loaded" Closing="window_main_Closing">
+    <Window.Resources>
+        <Style x:Key="LogTabStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="Gray"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="12,3" Margin="2,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="MediumPurple"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Window.RenderTransform>
         <TransformGroup>
             <ScaleTransform CenterX="{calc:Binding ActualWidth/2,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type Window}}}" CenterY="{calc:Binding ActualHeight/2,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type Window}}}" x:Name="window_scale"/>
@@ -151,6 +173,12 @@
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
+
+                            <StackPanel Orientation="Horizontal" Margin="56,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Visibility="{calc:Binding IsChecked,ElementName=rb_LogView,FalseToVisibility=Collapsed}">
+                                <RadioButton x:Name="rb_LogInit" Style="{StaticResource LogTabStyle}" Content="初始化" GroupName="LogTab" IsChecked="True" Checked="LogTab_Changed"/>
+                                <RadioButton x:Name="rb_LogApi" Style="{StaticResource LogTabStyle}" Content="API" GroupName="LogTab" Checked="LogTab_Changed"/>
+                            </StackPanel>
 
                             <StackPanel Margin="0,0,5,0" Visibility="{calc:Binding IsChecked,ElementName=rb_TranslatingView,FalseToVisibility=Collapsed}" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <controls:ViewButton Margin="0,0,3,0" Width="32" Height="32" Content="▶" ToolTip="全部开始" Command="{Binding StartAllCommand}"/>

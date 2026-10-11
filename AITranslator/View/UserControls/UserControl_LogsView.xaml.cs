@@ -25,6 +25,18 @@ namespace AITranslator.View.UserControls
             InitializeComponent();
         }
 
+        public void ShowInit()
+        {
+            logViewInit.Visibility = Visibility.Visible;
+            logViewApi.Visibility = Visibility.Collapsed;
+        }
+
+        public void ShowApi()
+        {
+            logViewInit.Visibility = Visibility.Collapsed;
+            logViewApi.Visibility = Visibility.Visible;
+        }
+
         public void ViewToItem()
         {
             logViewApi.ScrollToBottom();

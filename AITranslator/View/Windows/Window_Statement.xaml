@@ -7,7 +7,7 @@
         xmlns:calc="clr-namespace:CalcBinding;assembly=CalcBinding" 
         xmlns:controls="clr-namespace:AITranslator.View.Controls"
         mc:Ignorable="d"
-        Title="软件声明" SizeToContent="Height" Height="Auto" Width="280" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Background="Transparent" AllowsTransparency="True" Loaded="Window_Loaded">
+        Title="软件声明" SizeToContent="Height" Height="Auto" Width="280" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Background="Transparent" AllowsTransparency="True">
     <Border x:Name="border_Main" CornerRadius="10" BorderThickness="1">
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -46,12 +46,7 @@
 
 
                 <StackPanel HorizontalAlignment="Center" Margin="5" Grid.Row="2" Orientation="Horizontal">
-                    <controls:ViewButton IsEnabled="{Binding CountdownEnds, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type local:Window_Statement}}}" EnableAnimation="DisEnable" Margin="5" Height="25" Width="120" Click="Button_Yes_Click" Cursor="Hand">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="同意"/>
-                            <TextBlock  Margin="5,0,0,0" Visibility="{calc:Binding !CountdownEnds,FalseToVisibility=Collapsed, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type local:Window_Statement}}}" Text="{Binding Countdown, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type local:Window_Statement}}}"/>
-                        </StackPanel>
-                    </controls:ViewButton>
+                    <controls:ViewButton EnableAnimation="DisEnable" Margin="5" Height="25" Width="120" Content="同意" Click="Button_Yes_Click" Cursor="Hand"/>
                     <controls:ViewButton EnableAnimation="DisEnable" Margin="5" Height="25" Width="120" Content="拒绝" Click="Button_No_Click" Cursor="Hand"/>
                 </StackPanel>
             </Grid>

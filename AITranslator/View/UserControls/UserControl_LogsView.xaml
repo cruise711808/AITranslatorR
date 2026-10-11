@@ -19,65 +19,23 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="LogTabItemStyle" TargetType="TabItem">
-            <Setter Property="Foreground" Value="Gray"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="bd" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,5">
-                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="MediumPurple"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="LogTabControlStyle" TargetType="TabControl">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabControl">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TabPanel Grid.Row="0" IsItemsHost="True" Background="Transparent" Margin="10,6,0,0"/>
-                            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent"/>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </UserControl.Resources>
-
-    <TabControl Style="{StaticResource LogTabControlStyle}" ItemContainerStyle="{StaticResource LogTabItemStyle}">
-        <TabItem Header="初始化">
-            <controls:LogView x:Name="logViewInit" Background="Transparent" BorderThickness="0" ItemsSource="{Binding Consoles}" ScrollViewer.CanContentScroll="False" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemContainerStyle="{StaticResource LogItemContainerStyle}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock TextWrapping="Wrap" Foreground="Gray" FocusVisualStyle="{x:Null}" Width="{calc:Binding '(ActualWidth - 5) less 0 ? 0 : (ActualWidth - 5)',ElementName=logViewInit}" Text="{Binding}"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </controls:LogView>
-        </TabItem>
-        <TabItem Header="API">
-            <controls:LogView x:Name="logViewApi" Background="Transparent" BorderThickness="0" ItemsSource="{Binding ConsolesApi}" ScrollViewer.CanContentScroll="False" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemContainerStyle="{StaticResource LogItemContainerStyle}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock TextWrapping="Wrap" Foreground="Gray" FocusVisualStyle="{x:Null}" Width="{calc:Binding '(ActualWidth - 5) less 0 ? 0 : (ActualWidth - 5)',ElementName=logViewApi}" Text="{Binding}"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </controls:LogView>
-        </TabItem>
-    </TabControl>
+    <Grid>
+        <!--初始化/总览日志：固定全部显示，不滚动-->
+        <controls:LogView x:Name="logViewInit" Background="Transparent" BorderThickness="0" ItemsSource="{Binding Consoles}" ScrollViewer.CanContentScroll="False" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemContainerStyle="{StaticResource LogItemContainerStyle}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock TextWrapping="Wrap" Foreground="Gray" FocusVisualStyle="{x:Null}" Width="{calc:Binding '(ActualWidth - 5) less 0 ? 0 : (ActualWidth - 5)',ElementName=logViewInit}" Text="{Binding}"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </controls:LogView>
+        <!--API 调用详情：滚动，最多 400 行-->
+        <controls:LogView x:Name="logViewApi" Visibility="Collapsed" Background="Transparent" BorderThickness="0" ItemsSource="{Binding ConsolesApi}" ScrollViewer.CanContentScroll="False" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemContainerStyle="{StaticResource LogItemContainerStyle}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock TextWrapping="Wrap" Foreground="Gray" FocusVisualStyle="{x:Null}" Width="{calc:Binding '(ActualWidth - 5) less 0 ? 0 : (ActualWidth - 5)',ElementName=logViewApi}" Text="{Binding}"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </controls:LogView>
+    </Grid>
 </UserControl>

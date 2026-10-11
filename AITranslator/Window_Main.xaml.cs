@@ -128,6 +128,19 @@ namespace AITranslator
                 uc_Logs.ViewToItem();   // 滚动到最后
         }
 
+        /// <summary>
+        /// 顶部日志标签(初始化/API)切换
+        /// </summary>
+        private void LogTab_Changed(object sender, RoutedEventArgs e)
+        {
+            if (uc_Logs is null || rb_LogApi is null)
+                return;
+            if (rb_LogApi.IsChecked == true)
+                uc_Logs.ShowApi();
+            else
+                uc_Logs.ShowInit();
+        }
+
         private void tbIcon_TrayLeftMouseDoubleClick(object sender, RoutedEventArgs e) => AnimShow();
 
         private void AnimShow()
