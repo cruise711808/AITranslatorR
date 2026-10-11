@@ -29,21 +29,29 @@ namespace AITranslator.Translator.Pretreatment
         /// <summary>
         /// 内置过滤：引擎数据黑名单 + 源语言过滤。命中即剔除，不参与翻译。
         /// </summary>
-        static bool ShouldKeepByBuiltIn(string value, PreprocessOptions? options)
+        static bool ShouldKeepByBuiltIn(string value, PreprocessOptions? options, PreprocessStats? stats)
         {
             if (options is null)
                 return true;
             if (options.UseEngineBlacklist && EngineBlacklist.Contains(value))
+            {
+                if (stats is not null)
+                    stats.EngineRemoved++;
                 return false;
+            }
             if (options.UseLanguageFilter && !LanguageFilter.ShouldKeep(value, options.SourceLanguage))
+            {
+                if (stats is not null)
+                    stats.LanguageRemoved++;
                 return false;
+            }
             return true;
         }
 
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        public static Dictionary<string, Dictionary<string, string?>> Pretreatment(this Dictionary<string, Dictionary<string, string?>> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
+        public static Dictionary<string, Dictionary<string, string?>> Pretreatment(this Dictionary<string, Dictionary<string, string?>> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null, PreprocessStats? stats = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.SelectMany(s => s.Value.Keys).ToList(), scriptPath, token);
             HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
@@ -57,7 +65,9 @@ namespace AITranslator.Translator.Pretreatment
                         throw new OperationCanceledException("清理任务被终止", token);
                     if (!keepSet.Contains(key))
                         continue;
-                    if (!ShouldKeepByBuiltIn(key, options))
+                    if (stats is not null)
+                        stats.Total++;
+                    if (!ShouldKeepByBuiltIn(key, options, stats))
                         continue;
                     if (!output.ContainsKey(kv.Key))
                         output[kv.Key] = new Dictionary<string, string?>();
@@ -71,7 +81,7 @@ namespace AITranslator.Translator.Pretreatment
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        public static Dictionary<string, string> Pretreatment(this Dictionary<string, string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
+        public static Dictionary<string, string> Pretreatment(this Dictionary<string, string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null, PreprocessStats? stats = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Select(s => s.Key).ToList(), scriptPath, token);
             HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
@@ -84,7 +94,9 @@ namespace AITranslator.Translator.Pretreatment
                 string key = kv.Key;
                 if (!keepSet.Contains(key))
                     continue;
-                if (!ShouldKeepByBuiltIn(key, options))
+                if (stats is not null)
+                    stats.Total++;
+                if (!ShouldKeepByBuiltIn(key, options, stats))
                     continue;
                 output[key] = kv.Value.Normalize(NormalizationForm.FormKC);//标准化字符串格式
             }
@@ -95,7 +107,7 @@ namespace AITranslator.Translator.Pretreatment
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        public static Dictionary<int, SrtData> Pretreatment(this Dictionary<int, SrtData> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
+        public static Dictionary<int, SrtData> Pretreatment(this Dictionary<int, SrtData> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null, PreprocessStats? stats = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Select(s => s.Value.Text).ToList(), scriptPath, token);
             HashSet<string> keepSet = new HashSet<string>(notCleanStrs, StringComparer.Ordinal);
@@ -111,7 +123,9 @@ namespace AITranslator.Translator.Pretreatment
                 string text = kv.Value.Text;
                 if (!keepSet.Contains(text))
                     continue;
-                if (!ShouldKeepByBuiltIn(text, options))
+                if (stats is not null)
+                    stats.Total++;
+                if (!ShouldKeepByBuiltIn(text, options, stats))
                     continue;
                 output[t] = kv.Value;
                 t++;
@@ -123,12 +137,22 @@ namespace AITranslator.Translator.Pretreatment
         /// <summary>
         /// 对要被翻译的数据进行提前的清理和预处理
         /// </summary>
-        public static List<string> Pretreatment(this List<string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null)
+        public static List<string> Pretreatment(this List<string> input, string scriptPath, CancellationToken token, PreprocessOptions? options = null, PreprocessStats? stats = null)
         {
             List<string> notCleanStrs = getNotCleanStrs(input.Where(s => true).ToList(), scriptPath, token);
-            if (options is null)
+            if (options is null && stats is null)
                 return notCleanStrs;
-            return notCleanStrs.Where(s => ShouldKeepByBuiltIn(s, options)).ToList();
+
+            List<string> output = new List<string>();
+            foreach (var s in notCleanStrs)
+            {
+                if (stats is not null)
+                    stats.Total++;
+                if (!ShouldKeepByBuiltIn(s, options, stats))
+                    continue;
+                output.Add(s);
+            }
+            return output;
         }
 
 

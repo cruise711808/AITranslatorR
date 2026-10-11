@@ -54,6 +54,29 @@ namespace AITranslator.Translator.Pretreatment
     }
 
     /// <summary>
+    /// 预处理统计：引擎数据剔除数、其他语言剔除数、待翻译数
+    /// </summary>
+    public sealed class PreprocessStats
+    {
+        /// <summary>
+        /// 进入内置过滤的条目总数（即通过清理规则后剩下的条目）
+        /// </summary>
+        public int Total { get; set; }
+        /// <summary>
+        /// 被引擎数据黑名单剔除的条目数
+        /// </summary>
+        public int EngineRemoved { get; set; }
+        /// <summary>
+        /// 被源语言过滤剔除的条目数
+        /// </summary>
+        public int LanguageRemoved { get; set; }
+        /// <summary>
+        /// 需要翻译的条目数
+        /// </summary>
+        public int Kept => Total - EngineRemoved - LanguageRemoved;
+    }
+
+    /// <summary>
     /// 引擎数据黑名单：由多个游戏的原始导出文件交叉得到的“无需翻译”内容（字体名、引擎串、控制器映射等）。
     /// 命中即视为引擎数据，不参与翻译。
     /// </summary>

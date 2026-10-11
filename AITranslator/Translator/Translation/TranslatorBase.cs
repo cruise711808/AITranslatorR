@@ -428,23 +428,25 @@ namespace AITranslator.Translator.Translation
                             {
                                 SourceLanguage = PreprocessOptions.ParseSourceLanguage(_translationTask.TemplateConfigParams.TemplateDic)
                             };
+                            PreprocessStats preprocessStats = new PreprocessStats();
                             switch (Type)
                             {
                                 case TranslateDataType.KV:
-                                    KVTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
+                                    KVTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions, preprocessStats);
                                     break;
                                 case TranslateDataType.Tpp:
-                                    TppTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
+                                    TppTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions, preprocessStats);
                                     break;
                                 case TranslateDataType.Srt:
-                                    SrtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
+                                    SrtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions, preprocessStats);
                                     break;
                                 case TranslateDataType.Txt:
-                                    TxtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions);
+                                    TxtTranslateData.Clear(_translationTask.DicName, cleanTemplatePath, token, preprocessOptions, preprocessStats);
                                     break;
                                 default:
                                     throw new KnownException("不支持的翻译文件类型");
                             }
+                            ViewModelManager.WriteLine($"[{DateTime.Now:G}]清理完成：待翻译 {preprocessStats.Kept} 条，剔除引擎数据 {preprocessStats.EngineRemoved} 条，剔除其他语言 {preprocessStats.LanguageRemoved} 条");
 
                             TranslateData.ReloadData();
                         }

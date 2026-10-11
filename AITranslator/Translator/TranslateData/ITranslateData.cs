@@ -34,7 +34,7 @@ namespace AITranslator.Translator.TranslateData
         /// 替换和清理原始数据
         /// </summary>
         /// <param name="dicName"></param>
-        public abstract static void Clear(string dicName, string clearTemplatePath, CancellationToken token, PreprocessOptions? options = null);
+        public abstract static void Clear(string dicName, string clearTemplatePath, CancellationToken token, PreprocessOptions? options = null, PreprocessStats? stats = null);
 
         public abstract static bool HasFailedData(string dicName);
     }
